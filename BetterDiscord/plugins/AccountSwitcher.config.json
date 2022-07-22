@@ -1,0 +1,79 @@
+{
+    "didShowIssueHelperPopup": true,
+    "currentVersionInfo": {
+        "version": "1.3.5",
+        "hasShownChangelog": true
+    },
+    "settings": {
+        "accounts": [
+            {
+                "name": "Bellotto#8880",
+                "id": "806685903200190544",
+                "avatar": "https://cdn.discordapp.com/avatars/806685903200190544/bc090e0b1e97c2d3307ad9d7f502a31b.webp?size=16",
+                "keybind": [
+                    64,
+                    10
+                ],
+                "token": "GeCExf3gHItTT4nb6McB4w==:yOeoA0Aaa2CGIAqldD9mBd/gSw0tW1Lr0jMdSmpiTlUTVZtPwUHl3B14GrWweCXEuRpWe/IKf1KslvJkjOav/LEv9ODnl9C6/HwFOugPAg6DR/RyTcfteZsaC+ilwAGN0rOpjTo4tCKDpOoVBRho39FTotJEKXqn65RxtXEs+Bs="
+            },
+            {
+                "name": "Bellotto#5788",
+                "id": "867540728062148668",
+                "avatar": "/assets/6f26ddd1bf59740c536d2274bb834a05.png",
+                "keybind": [
+                    64,
+                    12
+                ],
+                "token": "OVsfpzsMqcgGU0ILDlA6IA==:RPz2Yy7fkB+/8tZv5sq6ZroxR+GoByMqwDaC4cqAHmK6LM37aSx+9UFHzxyDbVzjH0CEqSvw4HErGeawEulHMd4Bl8Xv3mqFadZm+vhjoKHi6SCQUqveGgLJO9kSMX/KCHCDFTa4WBEZSOhtjcv995fiBP8cZHU9S2CwrY82Yrs="
+            },
+            {
+                "name": "Garcez#3464",
+                "id": "742063402662494288",
+                "avatar": "https://cdn.discordapp.com/avatars/742063402662494288/66ad5e592a7c946c1e173ef8d28a4df8.webp?size=256",
+                "keybind": [
+                    64,
+                    13
+                ],
+                "token": "BJzvVwS+rxu0Z6A7XdNN4A==:3mQEZj4PvHm/DBWdNLtvlvXyOJF2fO3HKOIrhkipGRprwf1iDz3gpAeSWWAXFiTVFdcjSZlj3Wm1hslJCuBnojGXMEkSjmqRg4PosKsA+Y4G0X3Rvv0Ah9R316324FaxIkLYffFMXRA7/phv7YLlX6/otQBPWpFYA4nzt3BQJ7Y="
+            },
+            {
+                "name": "Neurose#6410",
+                "id": "504817961140355073",
+                "avatar": "https://cdn.discordapp.com/avatars/504817961140355073/30071a06efe50715860dcffd030336ea.webp?size=16",
+                "keybind": [
+                    64,
+                    14
+                ],
+                "token": "TW0G/pjuvFP45ECReqg4yA==:ii7Ff1RdB4xSt8dc0p5V8e3bln5rx3SwW8QRp4rNojrJD9Q9v8rRtIK9xQ3tWfzU6N8phsMscRTHRBG1MWxZeLRiyxtbYEgwB00V+oy+wwb3BYVnCd8aczkV9J/a+HQWO9DvY2SNxdEfQSuaYO2jIpMqxIIWyPvMicKsBDiZVR4="
+            },
+            {
+                "name": "OnlyAGuy#9037",
+                "id": "524847334509510696",
+                "avatar": "https://cdn.discordapp.com/avatars/524847334509510696/bf8cbd0a1d6f1e80386b97a70beb2e6a.webp?size=256",
+                "keybind": [
+                    64,
+                    15
+                ],
+                "token": "TO7WwhbvYIXV19RyTWF3sw==:6JkT152CPX02Y/TJQzcFs5WV4e/eZM8WIv0PXvl0yb0nocMJpZKfOpq7aL8eDW3vKD2lplZdCDmb/IU8kv3yAoWJaGF86w3DtLlnl0BCWpuhdaTZnSK8ZNeFQ2ngftqmxJPHDcszScwVvTHhaZxgpeC+4TIZBEnxyWsD8j/YFT0="
+            },
+            {
+                "name": "Bellotto#7343",
+                "id": "499712331861721095",
+                "avatar": "https://cdn.discordapp.com/avatars/499712331861721095/cf0b806fc031850626b8202a76bad923.webp?size=16",
+                "keybind": [
+                    64,
+                    11
+                ],
+                "token": "QHalUydIm34jCSA5gmuGSg==:m2BKqXO4kSgqlSW8ERJVopvl993ksKkm1v0dcy1lltO1rL3TMWW4aLnO8BSlk/U1xYUs7UCQP+zHX8mpz5D8Ja6LG20VyUVsgpRUZwzpzn3po7/d58KaKtQ+JEKtAHBvuQKAxZV24agzhqA5Rs6eq7CYaesTJi1v85sZHlR5aEU="
+            }
+        ],
+        "encrypted": true,
+        "encTest": "hHqto1+8cfnScAHUmWaqQw==:koX3O8kThT1N0pqHcylfWA==",
+        "pluginsToRestart": [
+            "AccountDetailsPlus",
+            "AutoStartRichPresence"
+        ],
+        "encryptionVersion": 2,
+        "salt": "aEeK2DJsaMLYEn/AF5+I7L9J7clt/WLFFwEZURzjTvo="
+    }
+}
