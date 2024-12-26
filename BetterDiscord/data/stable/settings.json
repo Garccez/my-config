@@ -1,14 +1,12 @@
 {
     "general": {
-        "emotes": false,
-        "publicServers": false,
         "voiceDisconnect": false,
         "showToasts": true,
-        "mediaKeys": false
+        "mediaKeys": false,
+        "bdContextMenu": true
     },
     "addons": {
         "addonErrors": true,
-        "autoReload": true,
         "editAction": "detached"
     },
     "customcss": {
@@ -26,7 +24,7 @@
     },
     "window": {
         "transparency": false,
-        "removeMinimumSize": true,
+        "removeMinimumSize": false,
         "frame": false
     },
     "developer": {

@@ -8,11 +8,11 @@
 */
 
 /* Base */
-@import url("https://caffejappa.github.io/MateCord%20Dark/base.css");
+@import url("https://garccez.github.io/MateCord%20Dark/base.css");
 
 :root {
     /* Font */
-    --general-font: 'Open Sans';
+    --general-font: 'Ubuntu';
   
     /* TUSL */
     --separator-visibility: visible; /* Default: hidden | Alternatives: hidden, visible */
@@ -24,5 +24,5 @@
     --nl: 55px; /* Default: 55px */
 
     /* Logo */
-    --logo-image: url("https://caffejappa.github.io/MateCord%20Dark/assets/matecord.png"); /* Default: matecord.png | Alternatives: matecord.png, matecord2.png */
+    --logo-image: url("https://garccez.github.io/MateCord%20Dark/assets/matecord.png"); /* Default: matecord.png | Alternatives: matecord.png, matecord2.png */
 }

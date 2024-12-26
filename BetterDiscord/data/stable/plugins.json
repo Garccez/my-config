@@ -1,18 +1,12 @@
 {
     "BDFDB": true,
     "ZeresPluginLibrary": true,
-    "AccountSwitcher": true,
-    "CreationDate": true,
-    "ImageUtilities": true,
-    "PluginRepo": false,
-    "betterdiscord-google-fonts": true,
-    "Apate": false,
     "BetterFormattingRedux": true,
-    "BetterMediaPlayer": false,
-    "FileViewer": false,
-    "BetterBotTags": true,
-    "AvatarsEverywhere": true,
-    "ThemeRepo": false,
-    "AutoIdleOnAFK": true,
-    "BetterInvites": true
+    "Double Click To Edit": true,
+    "ImageUtilities": true,
+    "PluginRepo": true,
+    "StaffTag": true,
+    "ThemeRepo": true,
+    "FriendsSince": true,
+    "BetterChannelList": true
 }
