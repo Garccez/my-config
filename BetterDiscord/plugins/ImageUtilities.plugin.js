@@ -2,7 +2,7 @@
  * @name ImageUtilities
  * @author DevilBro
  * @authorId 278543574059057154
- * @version 5.4.8
+ * @version 5.6.1
  * @description Adds several Utilities for Images/Videos (Gallery, Download, Reverse Search, Zoom, Copy, etc.)
  * @invite Jx3TjNS
  * @donate https://www.paypal.me/MircoWittrien
@@ -14,7 +14,9 @@
 
 module.exports = (_ => {
 	const changeLog = {
-		
+		improved: {
+			"Download locations": "You can now add a \\* to your Download locations, allowing you to save an image in the location or one of its subfolders"
+		}
 	};
 	
 	return !window.BDFDB_Global || (!window.BDFDB_Global.loaded && !window.BDFDB_Global.started) ? class {
@@ -30,9 +32,9 @@ module.exports = (_ => {
 				else return r.text();
 			}).then(b => {
 				if (!b) throw new Error();
-				else return require("fs").writeFile(require("path").join(BdApi.Plugins.folder, "0BDFDB.plugin.js"), b, _ => BdApi.showToast("Finished downloading BDFDB Library", {type: "success"}));
+				else return require("fs").writeFile(require("path").join(BdApi.Plugins.folder, "0BDFDB.plugin.js"), b, _ => BdApi.UI.showToast("Finished downloading BDFDB Library", {type: "success"}));
 			}).catch(error => {
-				BdApi.alert("Error", "Could not download BDFDB Library Plugin. Try again later or download it manually from GitHub: https://mwittrien.github.io/downloader/?library");
+				BdApi.UI.alert("Error", "Could not download BDFDB Library Plugin. Try again later or download it manually from GitHub: https://mwittrien.github.io/downloader/?library");
 			});
 		}
 		
@@ -40,7 +42,7 @@ module.exports = (_ => {
 			if (!window.BDFDB_Global || !Array.isArray(window.BDFDB_Global.pluginQueue)) window.BDFDB_Global = Object.assign({}, window.BDFDB_Global, {pluginQueue: []});
 			if (!window.BDFDB_Global.downloadModal) {
 				window.BDFDB_Global.downloadModal = true;
-				BdApi.showConfirmationModal("Library Missing", `The Library Plugin needed for ${this.name} is missing. Please click "Download Now" to install it.`, {
+				BdApi.UI.showConfirmationModal("Library Missing", `The Library Plugin needed for ${this.name} is missing. Please click "Download Now" to install it.`, {
 					confirmText: "Download Now",
 					cancelText: "Cancel",
 					onCancel: _ => {delete window.BDFDB_Global.downloadModal;},
@@ -65,7 +67,8 @@ module.exports = (_ => {
 		var firedEvents = [];
 		var ownLocations = {}, downloadsFolder;
 		
-		var firstViewedImage, viewedImage, viewedImageTimeout;
+		var firstViewedImage, viewedImage;
+		var viewedImageTimeout, updateTimeout;
 		var switchedImageProps;
 		var cachedImages;
 		var eventTypes = {};
@@ -215,10 +218,7 @@ module.exports = (_ => {
 					viewerSettings: {
 						zoomMode: 				{value: true,	description: "Enables Zoom Mode to zoom into Images while holding down your Mouse"},
 						galleryMode: 				{value: true,	description: "Enables Gallery Mode to quick-switch between Images"},
-						details: 				{value: true,	description: "Adds Image Details (Name, Size, Amount)"},
-						copyImage: 				{value: true,	description: "Adds a 'Copy Image' Option"},
-						saveImage: 				{value: true,	description: "Adds a 'Save Image as' Option"},
-						jumpTo: 				{value: true,	description: "Adds a 'Jump to Message' Option in Gallery Mode"}
+						details: 				{value: true,	description: "Adds Image Details (Name, Size, Amount)"}
 					},
 					galleryFilter: {},
 					zoomSettings: {
@@ -267,11 +267,13 @@ module.exports = (_ => {
 				this.modulePatches = {
 					before: [
 						"ImageModal",
+						"ImageModalBar",
 						"MessageAccessories",
 						"Spoiler"
 					],
 					after: [
 						"ImageModal",
+						"ImageModalButtons",
 						"LazyImage",
 						"LazyImageZoomable",
 						"Spoiler",
@@ -337,6 +339,12 @@ module.exports = (_ => {
 						filter: unset !important;
 						backdrop-filter: unset !important;
 					}
+					${BDFDB.dotCN._imageutilitiesviewer} {
+						pointer-events: none;
+					}
+					${BDFDB.dotCN._imageutilitiesviewer} > * > *${BDFDB.notCN._imageutilitiesdetailswrapper} {
+						pointer-events: initial;
+					}
 					${BDFDB.dotCN._imageutilitiesgallery} ~ ${BDFDB.dotCN.imagemodalnavbutton} {
 						display: none;
 					}
@@ -354,6 +362,9 @@ module.exports = (_ => {
 						justify-content: center;
 						align-items: center;
 						min-width: 500px;
+					}
+					${BDFDB.dotCN.imagemodal + BDFDB.dotCNS.modalcarouselmodalmodern + BDFDB.notCN._imageutilitiessibling} > ${BDFDB.dotCN.imagewrapper} {
+						min-width: unset;
 					}
 					${BDFDB.dotCNS.imagemodal + BDFDB.notCN._imageutilitiessibling} > ${BDFDB.dotCN.imagewrapper} img {
 						object-fit: contain;
@@ -572,9 +583,9 @@ module.exports = (_ => {
 							title: "Download Locations",
 							collapseStates: collapseStates,
 							children: [
-								BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormComponents.FormTitle, {
+								BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormTitle.Title, {
 									className: BDFDB.disCN.marginbottom4,
-									tag: BDFDB.LibraryComponents.FormComponents.FormTags.H3,
+									tag: BDFDB.LibraryComponents.FormTitle.Tags.H3,
 									children: "Add additional Download Locations"
 								}),
 								BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex, {
@@ -582,7 +593,7 @@ module.exports = (_ => {
 									align: BDFDB.LibraryComponents.Flex.Align.END,
 									children: [
 										BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex.Child, {
-											children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormComponents.FormItem, {
+											children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormItem, {
 												title: "Name:",
 												children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextInput, {
 													value: locationInputs.name,
@@ -592,7 +603,7 @@ module.exports = (_ => {
 											})
 										}),
 										BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex.Child, {
-											children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormComponents.FormItem, {
+											children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormItem, {
 												title: "Location:",
 												children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextInput, {
 													value: locationInputs.location,
@@ -602,7 +613,7 @@ module.exports = (_ => {
 											})
 										}),
 										BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Button, {
-											style: {marginBottom: 1},
+											style: {marginBottom: 4},
 											onClick: _ => {
 												for (let key in locationInputs) if (!locationInputs[key] || !locationInputs[key].trim()) return BDFDB.NotificationUtils.toast("Fill out all fields to add a new Location", {type: "danger"});
 												let name = locationInputs.name.trim();
@@ -646,6 +657,7 @@ module.exports = (_ => {
 												})
 											}),
 											BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex.Child, {
+												grow: 1,
 												children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextInput, {
 													value: ownLocations[locationName].location,
 													placeholder: ownLocations[locationName].location,
@@ -866,7 +878,6 @@ module.exports = (_ => {
 				
 				let isVideo = this.isValid(urlData.file, "video");
 				let type = isVideo ? BDFDB.LanguageUtils.LanguageStrings.VIDEO : BDFDB.LanguageUtils.LanguageStrings.IMAGE;
-				
 				return BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuGroup, {
 					children: [
 						urlData.original && urlData.original.indexOf("data:") != 0 && BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuItem, {
@@ -908,41 +919,38 @@ module.exports = (_ => {
 								const imageThrowaway = document.createElement(isVideo ? "video" : "img");
 								imageThrowaway.addEventListener(isVideo ? "loadedmetadata" : "load", function() {
 									_this.cacheClickedImage(target);
-									BDFDB.LibraryModules.ModalUtils.openModal(modalData => {
-										return BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.ModalComponents.ModalRoot, Object.assign({
-											className: BDFDB.disCNS.modalcarouselmodal + BDFDB.disCN.imagemodal
-										}, modalData, {
-											size: BDFDB.LibraryComponents.ModalComponents.ModalSize.DYNAMIC,
-											"aria-label": BDFDB.LanguageUtils.LanguageStrings.IMAGE,
-											children: isVideo ? BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.ImageModal, {
-												items: [{
-													src: imageThrowaway.src,
-													poster: _this.getPosterUrl(imageThrowaway.src),
-													width: this.videoWidth,
-													naturalWidth: this.videoWidth,
-													height: this.videoHeight,
-													naturalHeight: this.videoHeight
-												}],
-												renderForwardComponent: _ => {},
-												renderLinkComponent: props => BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Anchor, props)
-											}) : BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.ImageModal, {
-												items: [{
-													animated: false,
-													height: this.height,
-													original: imageThrowaway.src,
-													srcIsAnimated: false,
-													trigger: "CLICK",
-													type: "IMAGE",
-													url: imageThrowaway.src,
-													width: this.width,
-													zoomThumbnailPlaceholder: imageThrowaway.src
-												}],
-												className: BDFDB.disCN.imagemodalimage,
-												renderForwardComponent: _ => {},
-												renderLinkComponent: props => BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Anchor, props)
+									let open = _ => BDFDB.LibraryModules.ModalUtils.openModal(modalData => {
+										return BDFDB.ReactUtils.createElement("div", {
+											className: _this.settings.viewerSettings.details && BDFDB.disCN._imageutilitiesdetailsadded,
+											children: BDFDB.ReactUtils.createElement("div", {
+												className: BDFDB.disCNS.modalcarouselmodal + BDFDB.disCNS.imagemodal + BDFDB.disCNS.modal + BDFDB.disCN._imageutilitiesviewer,
+												children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.ImageModal, {
+													location: "LazyImageZoomable",
+													onClose: _ => modalData.onClose(),
+													items: [isVideo ? {
+														src: imageThrowaway.src,
+														poster: _this.getPosterUrl(imageThrowaway.src),
+														width: this.videoWidth,
+														naturalWidth: this.videoWidth,
+														height: this.videoHeight,
+														naturalHeight: this.videoHeight
+													} : {
+														animated: false,
+														height: this.height,
+														original: imageThrowaway.src,
+														srcIsAnimated: false,
+														trigger: "CLICK",
+														type: "IMAGE",
+														url: imageThrowaway.src,
+														width: this.width,
+														zoomThumbnailPlaceholder: imageThrowaway.src
+													}]
+												})
 											})
-										}), true);
+										}, true);
 									});
+									if (BDFDB.LibraryComponents.ImageModal != "div") open();
+									else BDFDB.ModuleUtils.lazyLoadModuleImports(BDFDB.LibraryComponents.ImageModalOuter).then(_ => open());	
 								});
 								imageThrowaway.src = urlData.src || urlData.file;
 							}
@@ -952,11 +960,20 @@ module.exports = (_ => {
 							id: BDFDB.ContextMenuUtils.createItemId(this.name, "download-file-as"),
 							action: _ => this.downloadFile({url: urlData.original, fallbackUrl: urlData.src}, null, urlData.alternativeName),
 							children: locations.length && BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuGroup, {
-								children: locations.map((name, i) => BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuItem, {
-									id: BDFDB.ContextMenuUtils.createItemId(this.name, "download", name, i),
-									label: name,
-									action: _ => this.downloadFile({url: urlData.original, fallbackUrl: urlData.src}, ownLocations[name].location, urlData.alternativeName)
-								}))
+								children: locations.map((name, i) => {
+									let path = ownLocations[name].location.replace(/\\\*$/, "");
+									let subpaths = !/\\\*$/.test(ownLocations[name].location) ? null : BDFDB.LibraryRequires.fs.readdirSync(path).filter(n => n.indexOf(".") == -1);
+									return BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuItem, {
+										id: BDFDB.ContextMenuUtils.createItemId(this.name, "download", name, i),
+										label: name,
+										action: _ => this.downloadFile({url: urlData.original, fallbackUrl: urlData.src}, path, urlData.alternativeName),
+										children: subpaths && subpaths.length && subpaths.map(subname => BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuItem, {
+											id: BDFDB.ContextMenuUtils.createItemId(this.name, "download", name, subname),
+											label: subname,
+											action: _ => this.downloadFile({url: urlData.original, fallbackUrl: urlData.src}, path + "\\" + subname, urlData.alternativeName)
+										}))
+									})
+								})
 							})
 						}),
 						!this.isValid(urlData.original, "searchable") || !engineKeys.length ? null : engineKeys.length == 1 ? BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuItem, {
@@ -998,6 +1015,7 @@ module.exports = (_ => {
 			processImageModal (e, filterForVideos = false) {
 				if (switchedImageProps) {
 					e.instance.props.items = [switchedImageProps];
+					e.instance.props.startIndex = 0;
 					switchedImageProps = null;
 				}
 				else if (e.returnvalue) {
@@ -1006,162 +1024,25 @@ module.exports = (_ => {
 					let zoomedFitWrapper = BDFDB.ReactUtils.findChild(e.returnvalue, {props: [["className", BDFDB.disCN.imagemodalimagezoomedfit]]});
 					if (zoomedFitWrapper) zoomedFitWrapper.props.className = BDFDB.ArrayUtils.remove(zoomedFitWrapper.props.className.split(" "), BDFDB.disCN.imagemodalimagezoomedfit, true).join(" ");
 					
-					
-					let [children, index] = BDFDB.ReactUtils.findParent(e.returnvalue, {props: [["className", BDFDB.disCN.imagemodalimageoptionscontainer]]});
-					if (index > -1) {
-						let type = filterForVideos ? BDFDB.LanguageUtils.LanguageStrings.VIDEO : BDFDB.LanguageUtils.LanguageStrings.IMAGE;
-						let openContext = event => BDFDB.ContextMenuUtils.open(this, event, BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuGroup, {
-							children: Object.keys(this.defaults.zoomSettings).map(type => {
-								let isBoolean = typeof this.defaults.zoomSettings[type].value == "boolean";
-								return BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems[isBoolean ? "MenuCheckboxItem" : "MenuSliderItem"], Object.assign({
-									id: BDFDB.ContextMenuUtils.createItemId(this.name, type)
-								}, isBoolean ? {
-									checked: this.settings.zoomSettings[type],
-									action: value => {
-										this.settings.zoomSettings[type] = value;
-										BDFDB.DataUtils.save(this.settings.zoomSettings, this, "zoomSettings");
-									}
-								} : {
-									value: this.settings.zoomSettings[type],
-									renderLabel: (value, instance) => BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex, {
-										align: BDFDB.LibraryComponents.Flex.Align.CENTER,
-										children: [
-											BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex.Child, {
-												children: `${this.labels[this.defaults.zoomSettings[type].label] || BDFDB.LanguageUtils.LanguageStrings[this.defaults.zoomSettings[type].label]}:`
-											}),
-											BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextInput, {
-												type: "number",
-												size: BDFDB.LibraryComponents.TextInput.Sizes.MINI,
-												style: {width: 70},
-												min: 1,
-												max: this.defaults.zoomSettings[type].maxValue,
-												value: this.settings.zoomSettings[type],
-												onChange: value => value && value >= this.defaults.zoomSettings[type].minValue && instance.handleValueChange(BDFDB.NumberUtils.mapRange([this.defaults.zoomSettings[type].minValue, this.defaults.zoomSettings[type].maxValue], [0, 100], value))
-											}),
-											BDFDB.ReactUtils.createElement("span", {
-												style: {width: 20},
-												children: this.defaults.zoomSettings[type].unit
-											})
-										]
-									}),
-									onValueRender: value => `${value}${this.defaults.zoomSettings[type].unit}`,
-									onValueChange: value => {
-										this.settings.zoomSettings[type] = value;
-										BDFDB.DataUtils.save(this.settings.zoomSettings, this, "zoomSettings");
-									}
-								}, BDFDB.ObjectUtils.extract(this.defaults.zoomSettings[type], isBoolean ? ["label"] : ["digits", "minValue", "maxValue"])));
-							})
-						}));
-						children[index] = BDFDB.ReactUtils.createElement("span", {
-							className: BDFDB.disCN._imageutilitiesoperations,
+					if (this.settings.viewerSettings.details) {
+						e.returnvalue.props.children.push(BDFDB.ReactUtils.createElement("div", {
+							className: BDFDB.disCN._imageutilitiesdetailswrapper,
 							children: [
-								children[index],
-								this.settings.viewerSettings.saveImage && BDFDB.ReactUtils.createElement("div", {
-									className: BDFDB.disCN.imagemodalimageoptionscontainer,
-									children: [
-										BDFDB.ReactUtils.createElement("span", {
-											className: BDFDB.disCN.imagemodalimagedownloadlink,
-											children: "|",
-											style: {margin: "0 5px"}
-										}),
-										BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Anchor, {
-											className: BDFDB.disCN.imagemodalimagedownloadlink, 
-											children: this.labels.context_saveas.replace("{{var0}}", type),
-											onClick: event => {
-												BDFDB.ListenerUtils.stopEvent(event);
-												this.downloadFile({url: e.instance.props.original, fallbackUrl: url});
-											},
-											onContextMenu: event => {
-												let locations = Object.keys(ownLocations).filter(n => ownLocations[n].enabled);
-												if (locations.length) BDFDB.ContextMenuUtils.open(this, event, BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuGroup, {
-													children: locations.map((name, i) => BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuItem, {
-														id: BDFDB.ContextMenuUtils.createItemId(this.name, "download", name, i),
-														label: name,
-														action: _ => this.downloadFile({url: e.instance.props.original, fallbackUrl: url}, ownLocations[name].location)
-													}))
-												}));
-											}
-										})
-									]
-								}),
-								this.settings.viewerSettings.copyImage && this.isValid(url, "copyable") && BDFDB.ReactUtils.createElement("div", {
-									className: BDFDB.disCN.imagemodalimageoptionscontainer,
-									children: [
-										BDFDB.ReactUtils.createElement("span", {
-											className: BDFDB.disCN.imagemodalimagedownloadlink,
-											children: "|",
-											style: {margin: "0 5px"}
-										}),
-										BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Anchor, {
-											className: BDFDB.disCN.imagemodalimagedownloadlink, 
-											children: this.labels.context_copy.replace("{{var0}}", type),
-											onClick: event => {
-												BDFDB.ListenerUtils.stopEvent(event);
-												this.copyFile({url: e.instance.props.original, fallbackUrl: url});
-											}
-										})
-									]
-								}),
-								this.settings.viewerSettings.galleryMode && viewedImage && this.settings.viewerSettings.jumpTo && BDFDB.ReactUtils.createElement("div", {
-									className: BDFDB.disCN.imagemodalimageoptionscontainer,
-									children: [
-										BDFDB.ReactUtils.createElement("span", {
-											className: BDFDB.disCN.imagemodalimagedownloadlink,
-											children: "|",
-											style: {margin: "0 5px"}
-										}),
-										BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Anchor, {
-											className: BDFDB.disCN.imagemodalimagedownloadlink, 
-											children: BDFDB.LanguageUtils.LanguageStrings.JUMP,
-											onClick: event => {
-												let layerContainer = !event.shiftKey && BDFDB.DOMUtils.getParent(BDFDB.dotCN.itemlayercontainer, event.currentTarget)
-												let backdrop = layerContainer && layerContainer.querySelector(BDFDB.dotCN.backdrop);
-												if (backdrop) backdrop.click();
-												let channel = BDFDB.LibraryStores.ChannelStore.getChannel(viewedImage.channelId);
-												if (channel) BDFDB.LibraryModules.HistoryUtils.transitionTo(BDFDB.DiscordConstants.Routes.CHANNEL(channel.guild_id, channel.id, viewedImage.message.id));
-											}
-										})
-									]
-								}),
-								this.settings.viewerSettings.zoomMode && !filterForVideos && !this.isValid(e.instance.props.src, "gif") && BDFDB.ReactUtils.createElement("div", {
-									className: BDFDB.disCN.imagemodalimageoptionscontainer,
-									children: [
-										BDFDB.ReactUtils.createElement("span", {
-											className: BDFDB.disCN.imagemodalimagedownloadlink,
-											children: "|",
-											style: {margin: "0 5px"}
-										}),
-										BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Anchor, {
-											className: BDFDB.disCN.imagemodalimagedownloadlink, 
-											children: `Zoom ${BDFDB.LanguageUtils.LanguageStrings.SETTINGS}`,
-											onClick: openContext,
-											onContextMenu: openContext
-										})
-									]
-								})
-							].flat(10).filter(n => n)
-						});
-						
-						if (this.settings.viewerSettings.details) {
-							e.returnvalue.props.children.push(BDFDB.ReactUtils.createElement("div", {
-								className: BDFDB.disCN._imageutilitiesdetailswrapper,
+								e.instance.props.items[0].alt && {label: "Alt", text: e.instance.props.items[0].alt},
+								{label: "Source", text: this.removeSizeInUrl(this.removeFormatInUrl(url))},
+								{label: "Size", text: `${e.instance.props.items[0].width}x${e.instance.props.items[0].height}px`},
+								cachedImages && cachedImages.amount && cachedImages.amount > 1 && {label: filterForVideos ? "Video" : "Image", text: `${cachedImages.index + 1 || 1} of ${cachedImages.amount}`}
+							].filter(n => n).map(data => BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextElement, {
+								className: BDFDB.disCN._imageutilitiesdetails,
 								children: [
-									e.instance.props.items[0].alt && {label: "Alt", text: e.instance.props.items[0].alt},
-									{label: "Source", text: this.removeSizeInUrl(this.removeFormatInUrl(url))},
-									{label: "Size", text: `${e.instance.props.items[0].width}x${e.instance.props.items[0].height}px`},
-									cachedImages && cachedImages.amount && cachedImages.amount > 1 && {label: filterForVideos ? "Video" : "Image", text: `${cachedImages.index + 1 || 1} of ${cachedImages.amount}`}
-								].filter(n => n).map(data => BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextElement, {
-									className: BDFDB.disCN._imageutilitiesdetails,
-									children: [
-										BDFDB.ReactUtils.createElement("div", {
-											className: BDFDB.disCN._imageutilitiesdetailslabel,
-											children: data.label + ":"
-										}),
-										data.text
-									]
-								}))
-							}));
-						}
+									BDFDB.ReactUtils.createElement("div", {
+										className: BDFDB.disCN._imageutilitiesdetailslabel,
+										children: data.label + ":"
+									}),
+									data.text
+								]
+							}))
+						}));
 					}
 					if (this.settings.viewerSettings.galleryMode && viewedImage) {
 						if (!cachedImages || cachedImages.channelId != viewedImage.channelId || cachedImages.amount && this.getImageIndex(cachedImages.all, viewedImage) == -1) {
@@ -1235,8 +1116,14 @@ module.exports = (_ => {
 								this.addListener("keydown", "Gallery", event => {
 									if (!firedEvents.includes("Gallery")) {
 										firedEvents.push("Gallery");
-										if (event.keyCode == 37) this.switchImages(-1, filterForVideos);
-										else if (event.keyCode == 39) this.switchImages(1, filterForVideos);
+										if (event.keyCode == 37) {
+											BDFDB.ListenerUtils.stopEvent(event);
+											this.switchImages(-1, filterForVideos);
+										}
+										else if (event.keyCode == 39) {
+											BDFDB.ListenerUtils.stopEvent(event);
+											this.switchImages(1, filterForVideos);
+										}
 									}
 								});
 								this.addListener("keyup", "Gallery", _ => BDFDB.ArrayUtils.remove(firedEvents, "Gallery", true));
@@ -1247,6 +1134,60 @@ module.exports = (_ => {
 						e.returnvalue.props.children[2] = null;
 					}
 				}
+			}
+			
+			processImageModalBar (e) {
+				if (viewedImage && viewedImage.url) {
+					let item = {};
+					for (let key in viewedImage) item[key.split("_").map((n, i) => i > 0 ? BDFDB.StringUtils.upperCaseFirstChar(n) : n).join("")] = viewedImage[key];
+					item.alt = undefined;
+					item.contentScanMetadata = {version: item.contentScanVersion, flags: 0};
+					item.original = item.url;
+					item.loadingState = 2;
+					item.srcIsAnimated = false;
+					item.type = "IMAGE";
+					item.sourceMetadata = {
+						message: new BDFDB.DiscordObjects.Message(Object.assign({}, item.message, {author: new BDFDB.DiscordObjects.User(item.message.author)})),
+						identifier: {
+							attachmentId: item.id,
+							filename: item.filename,
+							size: item.size,
+							title: undefined,
+							type: "attachment"
+						}
+					};
+					for (let key of ["size", "filename", "id", "message", "channelId", "contentScanVersion"]) delete item[key];
+					e.instance.props.item = item;
+				}
+			}
+			
+			processImageModalButtons (e) {
+				let children = e.returnvalue.props.children;
+				e.returnvalue.props.children = BDFDB.TimeUtils.suppress((...args) => {
+					let returnValue = children(...args);
+					let [buttons, index] = BDFDB.ReactUtils.findParent(returnValue, {filter: n => n && n.type && n.type.toString().indexOf("ZOOM") > -1});
+					if (index > -1) buttons[index] = this.settings.viewerSettings.zoomMode && !this.isValid(e.instance.props.item.original, "gif") ? BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TooltipContainer, {
+						text: `Zoom ${BDFDB.LanguageUtils.LanguageStrings.SETTINGS}`,
+						tooltipConfig: {
+							type: BDFDB.LibraryComponents.TooltipContainer.Positions.BOTTOM
+						},
+						children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Button, {
+							className: BDFDB.disCNS.imagemodalactionbutton + BDFDB.disCN.imagemodalactionbuttonwrapper,
+							innerClassName: BDFDB.disCN.imagemodalactionbuttoninner,
+							look: BDFDB.LibraryComponents.Button.Looks.BLANK,
+							color: BDFDB.LibraryComponents.Button.Colors.TRANSPARENT,
+							size: BDFDB.LibraryComponents.Button.Sizes.ICON,
+							children: BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.SvgIcon, {
+								nativeClass: true,
+								name: BDFDB.LibraryComponents.SvgIcon.Names.ZOOM,
+								width: 18,
+								height: 18
+							}),
+							onClick: event => this.openZoomSettings(event)
+						})
+					}) : null;
+					return returnValue;
+				}, "Error in Children Render of ImageModalButtons!");
 			}
 			
 			processLazyImage (e) {
@@ -1275,7 +1216,7 @@ module.exports = (_ => {
 							BDFDB.ReactUtils.forceUpdate(e.instance);
 						}
 					}
-					if (e.methodname == "componentWillUnmount" && BDFDB.DOMUtils.getParent(BDFDB.dotCNC.imagemodal + BDFDB.dotCN.modalcarouselmodal, e.node)) {
+					if (e.methodname == "componentWillUnmount" && BDFDB.DOMUtils.getParent(BDFDB.dotCNC.imagemodal + BDFDB.dotCNC.modalcarouselmodal + BDFDB.dotCN.modalcarouselmodalmodern, e.node)) {
 						BDFDB.TimeUtils.clear(viewedImageTimeout);
 						viewedImageTimeout = BDFDB.TimeUtils.timeout(_ => {
 							firstViewedImage = null;
@@ -1283,7 +1224,7 @@ module.exports = (_ => {
 							this.cleanupListeners("Gallery");
 						}, 1000);
 					}
-					if (e.methodname == "componentDidMount" && BDFDB.DOMUtils.getParent(BDFDB.dotCNC.imagemodal + BDFDB.dotCN.modalcarouselmodal, e.node)) {
+					if (e.methodname == "componentDidMount" && BDFDB.DOMUtils.getParent(BDFDB.dotCNC.imagemodal + BDFDB.dotCNC.modalcarouselmodal + BDFDB.dotCN.modalcarouselmodalmodern, e.node)) {
 						BDFDB.TimeUtils.clear(viewedImageTimeout);
 						let modal = BDFDB.DOMUtils.getParent(BDFDB.dotCN.modal, e.node);
 						if (modal) {
@@ -1293,8 +1234,11 @@ module.exports = (_ => {
 						
 						if (this.isValid(e.instance.props.src, "gif")) e.node.style.setProperty("pointer-events", "none");
 						if (this.settings.viewerSettings.zoomMode && typeof e.instance.props.children != "function" && !BDFDB.DOMUtils.containsClass(e.node.parentElement, BDFDB.disCN._imageutilitiessibling)) {
-							e.node.style.setProperty("cursor", "zoom-in");
-							e.node.addEventListener(this.settings.zoomSettings.clickMode ? "click" : "mousedown", event => {
+							let overlay = BDFDB.DOMUtils.create(`<div style="cursor: zoom-in; position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: all;"></div>`);
+							e.node.parentElement.parentElement.appendChild(overlay);
+							e.node.parentElement.parentElement.style.setProperty("position", "relative");
+							overlay.addEventListener("contextmenu", event => e.node.querySelector("img").dispatchEvent(new MouseEvent("contextmenu", event)));
+							overlay.addEventListener(this.settings.zoomSettings.clickMode ? "click" : "mousedown", event => {
 								BDFDB.ListenerUtils.stopEvent(event);
 								if (event.which != 1 || e.node.querySelector("video")) return;
 								
@@ -1389,7 +1333,7 @@ module.exports = (_ => {
 				}
 				else {
 					let reactInstance = BDFDB.ObjectUtils.get(e, `instance.${BDFDB.ReactUtils.instanceKey}`);
-					if (this.settings.rescaleSettings.imageViewer != "NONE" && e.instance.props.className && e.instance.props.className.indexOf(BDFDB.disCN.imagemodalimage) > -1) {
+					if (this.settings.rescaleSettings.imageViewer != "NONE" && e.instance.props.className && e.instance.props.className.indexOf(BDFDB.disCN.imagemodalimagemedia) > -1) {
 						let aRects = BDFDB.DOMUtils.getRects(document.querySelector(BDFDB.dotCN.appmount));
 						let ratio = Math.min((aRects.width * (this.settings.viewerSettings.galleryMode ? 0.8 : 1) - 20) / e.instance.props.width, (aRects.height - (this.settings.viewerSettings.details ? 280 : 100)) / e.instance.props.height);
 						ratio = this.settings.rescaleSettings.imageViewer == "ORIGINAL" && ratio > 1 ? 1 : ratio;
@@ -1436,30 +1380,27 @@ module.exports = (_ => {
 			}
 
 			processLazyImageZoomable (e) {
-				if (!e.instance.props.original || e.instance.props.src.indexOf("https://media.discordapp.net/attachments") != 0) return;
+				if (!e.instance.props.item || !e.instance.props.item.originalItem || e.instance.props.src.indexOf("https://media.discordapp.net/attachments") != 0) return;
 				if (this.settings.detailsSettings.tooltip || this.settings.detailsSettings.footnote && e.instance.props.mediaLayoutType == "MOSAIC" && (BDFDB.ReactUtils.findValue(BDFDB.ObjectUtils.get(e, `instance.${BDFDB.ReactUtils.instanceKey}`), "message", {up: true}) || {attachments: []}).attachments.filter(n => n.content_type && n.content_type.startsWith("image")).length > 1) {
-					const item = BDFDB.ReactUtils.findValue(e.instance, "item", {up: true});
-					if (item && item.originalItem) {
-						const onMouseEnter = e.returnvalue.props.onMouseEnter;
-						e.returnvalue.props.onMouseEnter = BDFDB.TimeUtils.suppress((...args) => {
-							BDFDB.TooltipUtils.create(args[0].target, [
-								item.originalItem.filename,
-								BDFDB.NumberUtils.formatBytes(item.originalItem.size),
-								`${item.originalItem.width}x${item.originalItem.height}px`
-							].map(l => BDFDB.ReactUtils.createElement("div", {style: {padding: "2px 0"}, children: l})), {
-								type: "right",
-								delay: this.settings.detailsSettings.tooltipDelay
-							});
-							return onMouseEnter(...args);
-						}, "Error in onMouseEnter of LazyImageZoomable!");
-					}
+					const onMouseEnter = e.returnvalue.props.onMouseEnter || (_ => {});
+					e.returnvalue.props.onMouseEnter = BDFDB.TimeUtils.suppress((...args) => {
+						BDFDB.TooltipUtils.create(args[0].target, [
+							e.instance.props.item.originalItem.filename,
+							BDFDB.NumberUtils.formatBytes(e.instance.props.item.originalItem.size),
+							`${e.instance.props.item.originalItem.width}x${e.instance.props.item.originalItem.height}px`
+						].map(l => BDFDB.ReactUtils.createElement("div", {style: {padding: "2px 0"}, children: l})), {
+							type: "right",
+							delay: this.settings.detailsSettings.tooltipDelay
+						});
+						return onMouseEnter(...args);
+					}, "Error in onMouseEnter of LazyImageZoomable!");
 				}
 				if (this.settings.detailsSettings.footnote && [e.instance.props.className, e.instance.props.containerClassName].every(n => [BDFDB.disCN.embedmedia, BDFDB.disCN.embedthumbnail].every(m => (n || "").indexOf(m) == -1)) && (e.instance.props.mediaLayoutType != "MOSAIC" || (BDFDB.ReactUtils.findValue(BDFDB.ObjectUtils.get(e, `instance.${BDFDB.ReactUtils.instanceKey}`), "message", {up: true}) || {attachments: []}).attachments.filter(n => n.content_type && n.content_type.startsWith("image")).length < 2)) {
 					e.returnvalue = BDFDB.ReactUtils.createElement("div", {
 						children: [
 							e.returnvalue,
 							BDFDB.ReactUtils.createElement(ImageDetailsComponent, {
-								original: e.instance.props.original,
+								original: e.instance.props.item.original,
 								attachment: {
 									height: 0,
 									width: 0,
@@ -1537,6 +1478,7 @@ module.exports = (_ => {
 				firstViewedImage = {message: message, channelId: message.channel_id, proxy_url: image.src};
 				viewedImage = firstViewedImage;
 				if (cachedImages) cachedImages.index = this.getImageIndex(cachedImages.all, viewedImage);
+				BDFDB.TimeUtils.clear(viewedImageTimeout);
 				viewedImageTimeout = BDFDB.TimeUtils.timeout(_ => {
 					firstViewedImage = null;
 					viewedImage = null;
@@ -1546,9 +1488,9 @@ module.exports = (_ => {
 			requestFile (urls, onLoad, onError, config = {}) {
 				if (!urls || typeof onLoad != "function") return typeof onError == "function" && onError();
 				let url = (urls.url && urls.url.startsWith("/assets") ? (window.location.origin + urls.url) : urls.url || "");
-				let isResized = !config.orignalSizeChecked && (url.indexOf("?width=") > -1 || url.indexOf("?height=") > -1 || url.indexOf("?size=") > -1);
+				let isResized = !config.orignalSizeChecked && (url.indexOf("width=") > -1 || url.indexOf("height=") > -1 || url.indexOf("size=") > -1);
 				url = isResized ? this.removeSizeInUrl(url) : url;
-				let isFormatted = (url.indexOf("?format=") > -1);
+				let isFormatted = (url.indexOf("format=") > -1);
 				url = isFormatted ? this.removeFormatInUrl(url) : url;
 				url = url.indexOf("discordapp.com/avatars/") > 0 || url.indexOf("discordapp.com/icons/") > 0 ? `${url}?size=4096` : url;
 				BDFDB.LibraryRequires.request(url, {toBuffer: true}, (error, response, buffer) => {
@@ -1676,7 +1618,7 @@ module.exports = (_ => {
 								newestId: messages[messages.length-1] ? messages[messages.length-1].id : null,
 								lastReached: index == (cachedImages.all.length - 1)
 							});
-							this.updateImageModal();
+							this.updateImageModal(true);
 						}
 					});
 				}
@@ -1703,7 +1645,7 @@ module.exports = (_ => {
 								index: index,
 								amount: cachedImages.all.length
 							});
-							this.updateImageModal();
+							this.updateImageModal(true);
 						}
 					});
 				}
@@ -1735,11 +1677,60 @@ module.exports = (_ => {
 					width: thisViewedImage.width,
 					zoomThumbnailPlaceholder: thisViewedImage.proxy_url,
 				};
-				this.updateImageModal();
+				this.updateImageModal(true);
 			}
 			
-			updateImageModal () {
-				BDFDB.ReactUtils.forceUpdate(BDFDB.ReactUtils.findOwner(document.querySelector(BDFDB.dotCN.imagemodal), {up: true, filter: n => n && n.stateNode && n.stateNode.props && n.stateNode.props.isTopModal && n.stateNode.props.modalKey}));
+			openZoomSettings (event) {
+				BDFDB.ContextMenuUtils.open(this, event, BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems.MenuGroup, {
+					children: Object.keys(this.defaults.zoomSettings).map(type => {
+						let isBoolean = typeof this.defaults.zoomSettings[type].value == "boolean";
+						return BDFDB.ContextMenuUtils.createItem(BDFDB.LibraryComponents.MenuItems[isBoolean ? "MenuCheckboxItem" : "MenuSliderItem"], Object.assign({
+							id: BDFDB.ContextMenuUtils.createItemId(this.name, type)
+						}, isBoolean ? {
+							checked: this.settings.zoomSettings[type],
+							action: value => {
+								this.settings.zoomSettings[type] = value;
+								BDFDB.DataUtils.save(this.settings.zoomSettings, this, "zoomSettings");
+							}
+						} : {
+							value: this.settings.zoomSettings[type],
+							renderLabel: (value, instance) => BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex, {
+								align: BDFDB.LibraryComponents.Flex.Align.CENTER,
+								children: [
+									BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Flex.Child, {
+										children: `${this.labels[this.defaults.zoomSettings[type].label] || BDFDB.LanguageUtils.LanguageStrings[this.defaults.zoomSettings[type].label]}:`
+									}),
+									BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.TextInput, {
+										type: "number",
+										size: BDFDB.LibraryComponents.TextInput.Sizes.MINI,
+										style: {width: 70},
+										min: 1,
+										max: this.defaults.zoomSettings[type].maxValue,
+										value: this.settings.zoomSettings[type],
+										onChange: value => value && value >= this.defaults.zoomSettings[type].minValue && instance.handleValueChange(BDFDB.NumberUtils.mapRange([this.defaults.zoomSettings[type].minValue, this.defaults.zoomSettings[type].maxValue], [0, 100], value))
+									}),
+									BDFDB.ReactUtils.createElement("span", {
+										style: {width: 20},
+										children: this.defaults.zoomSettings[type].unit
+									})
+								]
+							}),
+							onValueRender: value => `${value}${this.defaults.zoomSettings[type].unit}`,
+							onValueChange: value => {
+								this.settings.zoomSettings[type] = value;
+								BDFDB.DataUtils.save(this.settings.zoomSettings, this, "zoomSettings");
+							}
+						}, BDFDB.ObjectUtils.extract(this.defaults.zoomSettings[type], isBoolean ? ["label"] : ["digits", "minValue", "maxValue"])));
+					})
+				}));
+			}
+			
+			updateImageModal (switched) {
+				BDFDB.TimeUtils.clear(updateTimeout);
+				updateTimeout = BDFDB.TimeUtils.timeout(_ => {
+					let ownerInstance = BDFDB.ReactUtils.findOwner(document.querySelector(BDFDB.dotCN.imagemodal), {up: true, filter: n => n && n.stateNode && n.stateNode.props && n.stateNode.props.isTopModal && n.stateNode.props.modalKey});
+					BDFDB.ReactUtils.forceUpdate(ownerInstance);
+				}, switched ? 0 : 500);
 			}
 			
 			filterForCopies (messages) {
@@ -1779,12 +1770,12 @@ module.exports = (_ => {
 					case "bg":		// Bulgarian
 						return {
 							context_copy:						"Копирайте {{var0}}",
-							context_imageactions:						"Действия с изображения",
+							context_imageactions:					"Действия с изображения",
 							context_lenssize:					"Размер на обектива",
 							context_saveas:						"Запазете {{var0}} като ...",
 							context_searchwith:					"Търсете {{var0}} с ...",
-							context_streamactions:						"Действия за визуализация на потока",
-							context_videoactions:						"Видео действия",
+							context_streamactions:					"Действия за визуализация на потока",
+							context_videoactions:					"Видео действия",
 							context_view:						"Преглед {{var0}}",
 							context_zoomspeed:					"Скорост на мащабиране",
 							submenu_disabled:					"Всички инвалиди",

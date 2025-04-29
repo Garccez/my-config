@@ -1,11 +1,9 @@
 {
 	"all": {
 		"changeLogs": {
-			"BDFDB": "3.8.1",
-			"ImageUtilities": "5.4.8",
-			"PluginRepo": "2.5.8",
-			"StaffTag": "1.6.2",
-			"ThemeRepo": "2.5.8"
+			"BDFDB": "4.0.7",
+			"ImageUtilities": "5.6.1",
+			"SplitLargeMessages": "1.8.7"
 		},
 		"choices": {
 			"toastPosition": "right"
@@ -13,12 +11,13 @@
 		"general": {
 			"shareData": true,
 			"showToasts": true,
+			"checkForUpdates": false,
 			"showSupportBadges": false,
 			"useChromium": false
 		},
 		"hashes": {
-			"0BDFDB.data.json": "0b6bc6bd9fc424903719b2ec4dfa2c8d46a8d1b0",
-			"0BDFDB.raw.css": "d54c1db8ea68d8dcc12b6ce688e277d5cad65856"
+			"0BDFDB.data.json": "3a7b8300f762ef1eea54fceb110724c40814f953",
+			"0BDFDB.raw.css": "d4e377e8c00f6f7390938129f1ce4051c3245d49"
 		}
 	}
 }
